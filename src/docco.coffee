@@ -59,19 +59,32 @@ parse = (source, code) ->
   sections = []
   language = get_language source
   has_code = docs_text = code_text = ''
+  in_comment_block = false
 
   save = (docs, code) ->
     sections.push docs_text: docs, code_text: code
 
   for line in lines
-    if line.match(language.comment_matcher) and not line.match(language.comment_filter)
+    if in_comment_block
+      if line.match(language.comment_end_matcher)
+        in_comment_block = false
+      else
+        docs_text += line.replace(language.comment_middle_matcher, '') + '\n'
+    else if line.match(language.comment_matcher) and not line.match(language.comment_filter)
       if has_code
         save docs_text, code_text
         has_code = docs_text = code_text = ''
       docs_text += line.replace(language.comment_matcher, '') + '\n'
+    else if language.comment_begin_matcher and line.match(language.comment_begin_matcher)
+      in_comment_block = true
+      if has_code
+        save docs_text, code_text
+        has_code = docs_text = code_text = ''
     else
       has_code = yes
       code_text += line + '\n'
+
+
   save docs_text, code_text
   sections
 
@@ -128,7 +141,7 @@ languages =
   '.coffee':
     name: 'coffee-script', symbol: '#'
   '.js':
-    name: 'javascript', symbol: '//'
+    name: 'javascript', symbol: '//', begin: '/**', middle: '*', end: '*/'
   '.rb':
     name: 'ruby', symbol: '#'
   '.py':
@@ -137,8 +150,20 @@ languages =
 # Build out the appropriate matchers and delimiters for each language.
 for ext, l of languages
 
+  escaper = (exp) ->
+    exp.replace(/(\/|\*|\\)/g, "\\$1")
+
   # Does the line begin with a comment?
   l.comment_matcher = new RegExp('^\\s*' + l.symbol + '\\s?')
+
+  # Does the line begin a multi-line comment?
+  l.comment_begin_matcher = new RegExp('^\\s*' + escaper(l.begin) + '\\s?') if l.begin
+
+  # Does the line continue a multi-line comment?
+  l.comment_middle_matcher = new RegExp('^\\s*' + escaper(l.middle) + '\\s?') if l.middle
+
+  # Does the line complete a multi-line comment?
+  l.comment_end_matcher = new RegExp('^\\s*' + escaper(l.end) + '\\s?') if l.end
 
   # Ignore [hashbangs](http://en.wikipedia.org/wiki/Shebang_(Unix))
   # and interpolations...
