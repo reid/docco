@@ -62,6 +62,11 @@ parse = (source, code) ->
   in_comment_block = false
 
   save = (docs, code) ->
+    # Make inline JSDoc more pleasant to read.
+    docs = docs.replace(/@([^\n]+)\n/g, "@$1<br>\n")
+    docs = docs.replace(/@(.*?)\s/g, "<strong>$1</strong> ")
+    docs = docs.replace(/{(.+)}/g, "<em>$1</em>")
+
     sections.push docs_text: docs, code_text: code
 
   for line in lines
