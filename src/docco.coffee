@@ -63,6 +63,8 @@ parse = (source, code) ->
 
   save = (docs, code) ->
     # Make inline JSDoc more pleasant to read.
+    docs = docs.replace(/@(param|see)\s/g, "↪ @$1 ")
+    docs = docs.replace(/@(return)\s/g, "↩ @$1 ")
     docs = docs.replace(/@([^\n]+)\n/g, "@$1<br>\n")
     docs = docs.replace(/@(.*?)\s/g, "<strong>$1</strong> ")
     docs = docs.replace(/{(.+)}/g, "<em>$1</em>")
